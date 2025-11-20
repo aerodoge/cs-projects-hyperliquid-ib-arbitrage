@@ -103,6 +103,7 @@ class IBKRFetcher:
 
         try:
             from ib_insync import Stock
+            import math
 
             # Create stock contract
             contract = Stock(self.symbol, 'SMART', 'USD')
@@ -111,24 +112,36 @@ class IBKRFetcher:
             self.ib.qualifyContracts(contract)
             ticker = self.ib.reqMktData(contract, '', False, False)
 
-            # Wait for data
-            timeout = 10  # seconds
+            # Wait for valid data (not None and not NaN)
+            timeout = 15  # seconds
             start_time = time.time()
-            while (not ticker.bid or not ticker.ask) and (time.time() - start_time < timeout):
+
+            def is_valid_price(price):
+                """检查价格是否有效（不是 None 也不是 NaN）"""
+                return price is not None and not math.isnan(price)
+
+            while time.time() - start_time < timeout:
                 self.ib.sleep(0.1)
+                if is_valid_price(ticker.bid) and is_valid_price(ticker.ask):
+                    break
 
             # Cancel market data subscription
             self.ib.cancelMktData(contract)
 
+            # 提取并验证价格数据
+            bid = ticker.bid if is_valid_price(ticker.bid) else None
+            ask = ticker.ask if is_valid_price(ticker.ask) else None
+            last = ticker.last if is_valid_price(ticker.last) else None
+
             # Calculate mid price
             mid = None
-            if ticker.bid and ticker.ask:
-                mid = (ticker.bid + ticker.ask) / 2
+            if bid is not None and ask is not None:
+                mid = (bid + ask) / 2
 
             return {
-                "bid": ticker.bid if ticker.bid else None,
-                "ask": ticker.ask if ticker.ask else None,
-                "last": ticker.last if ticker.last else None,
+                "bid": bid,
+                "ask": ask,
+                "last": last,
                 "mid": mid
             }
 
