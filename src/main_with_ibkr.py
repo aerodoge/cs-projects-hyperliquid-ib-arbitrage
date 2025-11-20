@@ -6,8 +6,8 @@ import argparse
 from datetime import datetime
 from dotenv import load_dotenv
 
-from hl_fetcher import HyperliquidFetcher
-from ib_fetcher import IBKRFetcher
+from hl_fetcher.fetcher_streaming import HyperliquidFetcherStreaming
+from ib_fetcher.fetcher_streaming import IBKRFetcherStreaming
 from prom_pusher import PrometheusMetricsPusher
 
 
@@ -34,9 +34,9 @@ def main():
     )
     parser.add_argument(
         "--interval",
-        type=int,
-        default=int(os.getenv("FETCH_INTERVAL", "60")),
-        help="Fetch interval in seconds (default: 60)"
+        type=float,
+        default=float(os.getenv("FETCH_INTERVAL", "60")),
+        help="Data collection interval in seconds - how often to read from real-time streams and push to Prometheus (default: 60, supports decimals like 0.1)"
     )
     parser.add_argument(
         "--push-gateway",
@@ -124,27 +124,29 @@ def main():
     # Parse perp_dexs
     perp_dexs = [dex.strip() for dex in args.perp_dexs.split(",")] if args.perp_dexs else ["xyz"]
 
-    # Initialize Hyperliquid fetcher
-    hl_fetcher = HyperliquidFetcher(
+    # Initialize Hyperliquid fetcher (WebSocket streaming mode)
+    print("Initializing Hyperliquid WebSocket connection...")
+    hl_fetcher = HyperliquidFetcherStreaming(
         symbol=args.symbol,
         use_testnet=args.testnet,
         perp_dexs=perp_dexs
     )
+    print("-" * 50)
 
-    # Initialize IBKR fetcher
+    # Initialize IBKR fetcher (streaming mode for real-time updates)
     ibkr_fetcher = None
     if not args.no_ibkr:
         # 处理账户ID（空字符串转为 None）
         account_id = args.ibkr_account_id if args.ibkr_account_id else None
 
-        ibkr_fetcher = IBKRFetcher(
+        ibkr_fetcher = IBKRFetcherStreaming(
             symbol=args.stock_symbol,
             host=args.ibkr_host,
             port=args.ibkr_port,
             client_id=args.ibkr_client_id,
             account_id=account_id
         )
-        # Try to connect
+        # Try to connect (automatically subscribes to market data)
         if not ibkr_fetcher.connect():
             print("Warning: Could not connect to IBKR. Continuing without IBKR data.")
             ibkr_fetcher = None
@@ -157,6 +159,7 @@ def main():
                     print("  账户类型: 纸交易 (Paper Trading)")
                 elif detected_account.startswith('U'):
                     print("  账户类型: 实盘 (Live Trading)")
+            print(f"✓ Subscribed to {args.stock_symbol} real-time data stream")
             print("-" * 50)
 
     # Initialize Prometheus pusher
@@ -253,9 +256,14 @@ def main():
     except KeyboardInterrupt:
         print("\n\nReceived interrupt signal. Shutting down...")
     finally:
-        # Cleanup
+        # Cleanup - disconnect and unsubscribe from market data
+        print("\nCleaning up connections...")
         if ibkr_fetcher:
+            print("  Disconnecting from IBKR...")
             ibkr_fetcher.disconnect()
+        if hl_fetcher:
+            print("  Closing Hyperliquid WebSocket...")
+            hl_fetcher.close()
 
     print("\nData collector stopped.")
 
