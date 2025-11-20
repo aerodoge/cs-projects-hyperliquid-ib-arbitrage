@@ -2,7 +2,7 @@
 
 从 Hyperliquid TradeXYZ 获取 NVDA 永续合约数据，并可选择性集成 Interactive Brokers 获取实际股票价格，用于套利分析和监控。
 
-## ⚡ 快速开始
+## 快速开始
 
 ```bash
 # 1. 安装依赖
@@ -17,21 +17,21 @@ python src/main.py                    # 仅 Hyperliquid
 python src/main_with_ibkr.py          # 包含 IBKR 套利分析
 ```
 
-## 📊 功能特性
+## 功能特性
 
 ### 核心功能
 
-- ✅ **Hyperliquid xyz:NVDA 永续合约数据**
+- **Hyperliquid xyz:NVDA 永续合约数据**
     - 订单簿价格（Bid/Ask）
     - K 线数据（Open/Close）
     - 资金费率（Funding Rate）
 
-- ✅ **Interactive Brokers 集成**（可选）
+- **Interactive Brokers 集成**（可选）
     - 实时 NVDA 股票价格
     - 套利机会计算
     - 基差分析
 
-- ✅ **Prometheus 集成**
+- **Prometheus 集成**
     - Push Gateway 支持
     - 完整时序数据
     - Grafana 可视化
@@ -45,21 +45,21 @@ python src/main_with_ibkr.py          # 包含 IBKR 套利分析
 | open, close        | Hyperliquid | K 线开平仓价 |
 | funding_rate       | Hyperliquid | 资金费率    |
 
-## 📖 完整文档
+## 完整文档
 
-**👉 查看 [完整中文文档](docs/README_CN.md) 获取详细说明**
+**查看 [完整中文文档](docs/README_CN.md) 获取详细说明**
 
 ### 文档索引
 
-| 文档                                 | 内容                          |
-|------------------------------------|-----------------------------|
-| **[完整中文文档](docs/README_CN.md)**    | 项目说明、安装、配置、使用、常见问题          |
+| 文档                                      | 内容                          |
+|-----------------------------------------|-----------------------------|
+| **[完整中文文档](docs/README_CN.md)**         | 项目说明、安装、配置、使用、常见问题          |
 | **[部署指南](docs/DEPLOYMENT.md)**          | 生产环境部署、Docker、Systemd、监控    |
 | **[IBKR 集成](docs/IBKR_INTEGRATION.md)** | Interactive Brokers 集成和套利分析 |
 | **[项目总结](docs/PROJECT_SUMMARY.md)**     | 功能总览、技术栈、使用场景               |
 | **[文档索引](docs/INDEX.md)**               | 所有文档的导航索引                   |
 
-## 🎯 使用场景
+## 使用场景
 
 ### 1. 监控永续合约价格
 
@@ -78,7 +78,7 @@ python src/main_with_ibkr.py
 
 适合：对比永续合约和实际股票价格，发现套利机会
 
-## 🛠️ 配置示例
+## 配置示例
 
 ### 基础配置（.env）
 
@@ -109,12 +109,13 @@ IBKR_REGULAR_HOURS_ONLY=true     # 仅在盘中（9:30-16:00 ET）采集 IBKR �
 ```
 
 **市场时段说明：**
+
 - 启用后只在美股常规交易时段采集 IBKR 数据
 - 盘前、盘后、休市时只采集 Hyperliquid 数据
 - 自动处理时区转换和夏令时，适合国际部署
 - 详见：[IBKR 集成 - 市场时段](docs/IBKR_INTEGRATION.md#市场时段和时区处理)
 
-## 📈 Prometheus 指标
+## Prometheus 指标
 
 采集的所有指标都会推送到 Prometheus：
 
@@ -136,7 +137,7 @@ hyib_arb_perp_mid_price
 hyib_arb_spot_mid_price
 ```
 
-## 🧪 测试
+## 测试
 
 ```bash
 # 测试 Hyperliquid 连接
@@ -149,7 +150,7 @@ python src/test_ibkr.py
 python src/list_assets.py
 ```
 
-## 📦 项目结构
+## 项目结构
 
 ```
 .
@@ -176,7 +177,7 @@ python src/list_assets.py
 
 **详细结构说明：** 查看 [项目结构文档](docs/PROJECT_STRUCTURE.md)
 
-## 💡 关键概念
+## 关键概念
 
 ### xyz:NVDA 是什么？
 
@@ -192,7 +193,7 @@ python src/list_assets.py
 - 计算永续合约与现货的价差（基差）
 - 发现套利机会
 
-## ⚙️ 采集频率
+## 采集频率
 
 ```bash
 # 高频监控（适合套利）
@@ -205,7 +206,7 @@ FETCH_INTERVAL=60
 FETCH_INTERVAL=300
 ```
 
-## 🚀 生产部署
+## 生产部署
 
 ### 使用 Systemd
 
@@ -223,7 +224,7 @@ docker-compose up -d
 
 详见：[部署指南](docs/DEPLOYMENT.md)
 
-## ❓ 常见问题
+## 常见问题
 
 ### Q: 为什么找不到 NVDA？
 
@@ -243,7 +244,7 @@ A: 可以！TradeXYZ 还部署了 TSLA、AAPL 等。运行 `python src/list_asse
 
 更多问题：[完整文档 - 常见问题](docs/README_CN.md#常见问题)
 
-## 🔗 相关链接
+## 相关链接
 
 - [Hyperliquid 官网](https://hyperliquid.xyz/)
 - [TradeXYZ](https://trade.xyz/)
@@ -251,14 +252,3 @@ A: 可以！TradeXYZ 还部署了 TSLA、AAPL 等。运行 `python src/list_asse
 - [Interactive Brokers API](https://www.interactivebrokers.com/en/trading/ib-api.php)
 - [ib_insync 文档](https://ib-insync.readthedocs.io/)
 
-## 📄 许可证
-
-MIT License
-
----
-
-**开始使用：** 查看 [完整中文文档](docs/README_CN.md) 📖
-
-**快速测试：** 运行 `./quickstart.sh` ⚡
-
-**获取帮助：** 查看 [文档索引](docs/INDEX.md) 📚
