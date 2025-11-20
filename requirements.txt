@@ -1,0 +1,6 @@
+hyperliquid-python-sdk
+prometheus-client
+requests
+python-dotenv
+ib_insync
+python-dateutil
