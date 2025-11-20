@@ -154,25 +154,25 @@ python src/list_assets.py
 
 ```
 .
-├── src/                          # 📦 源代码
-│   ├── hl_fetcher/               # 🔵 Hyperliquid 数据获取包
-│   ├── ib_fetcher/               # 🟢 IBKR 数据获取包
-│   ├── prom_pusher/              # 🟡 Prometheus 推送包
-│   ├── utils/                    # 🛠️ 工具脚本包
-│   ├── main.py                   # ⚡ 主程序（仅 Hyperliquid）
-│   ├── main_with_ibkr.py         # ⚡ 主程序（含 IBKR）
-│   ├── test_final.py             # 🧪 完整功能测试
-│   └── test_ibkr.py              # 🧪 IBKR 连接测试
-├── docs/                         # 📚 完整文档
-│   ├── README_CN.md              # 📖 详细中文文档
-│   ├── DEPLOYMENT.md             # 🚀 部署指南
-│   ├── IBKR_INTEGRATION.md       # 💹 IBKR 集成文档
-│   ├── PROJECT_SUMMARY.md        # 📊 项目总结
-│   ├── PROJECT_STRUCTURE.md      # 📁 项目结构说明
-│   └── INDEX.md                  # 🗂️ 文档索引
-├── requirements.txt              # 📋 Python 依赖
-├── .env.example                  # ⚙️ 配置模板
-└── quickstart.sh                 # 🚀 快速开始脚本
+├── src/                          # 源代码
+│   ├── hl_fetcher/               # Hyperliquid 数据获取包
+│   ├── ib_fetcher/               # IBKR 数据获取包
+│   ├── prom_pusher/              # Prometheus 推送包
+│   ├── utils/                    # 工具脚本包
+│   ├── main.py                   # 主程序（仅 Hyperliquid）
+│   ├── main_with_ibkr.py         # 主程序（含 IBKR）
+│   ├── test_final.py             # 完整功能测试
+│   └── test_ibkr.py              # IBKR 连接测试
+├── docs/                         # 完整文档
+│   ├── README_CN.md              # 详细中文文档
+│   ├── DEPLOYMENT.md             # 部署指南
+│   ├── IBKR_INTEGRATION.md       # IBKR 集成文档
+│   ├── PROJECT_SUMMARY.md        # 项目总结
+│   ├── PROJECT_STRUCTURE.md      # 项目结构说明
+│   └── INDEX.md                  # 文档索引
+├── requirements.txt              # Python 依赖
+├── .env.example                  # 配置模板
+└── quickstart.sh                 # 快速开始脚本
 ```
 
 **详细结构说明：** 查看 [项目结构文档](docs/PROJECT_STRUCTURE.md)
