@@ -7,7 +7,7 @@ import time
 class IBKRFetcher:
     """Fetches real stock price data from Interactive Brokers."""
 
-    def __init__(self, symbol: str = "NVDA", host: str = "127.0.0.1", port: int = 7497, client_id: int = 1):
+    def __init__(self, symbol: str = "NVDA", host: str = "127.0.0.1", port: int = 7497, client_id: int = 1, account_id: str = None):
         """Initialize the IBKR data fetcher.
 
         Args:
@@ -15,11 +15,14 @@ class IBKRFetcher:
             host: IB Gateway/TWS host
             port: IB Gateway/TWS port (7497 for TWS paper, 7496 for TWS live, 4002 for Gateway paper, 4001 for Gateway live)
             client_id: Unique client ID
+            account_id: IBKR account ID (e.g., "DU1234567" for paper, "U1234567" for live)
+                       If None, will use the first available account
         """
         self.symbol = symbol
         self.host = host
         self.port = port
         self.client_id = client_id
+        self.account_id = account_id
         self.ib = None
         self.connected = False
 
@@ -51,6 +54,42 @@ class IBKRFetcher:
             self.ib.disconnect()
             self.connected = False
             print("✓ Disconnected from IBKR")
+
+    def get_account_id(self) -> str:
+        """获取账户ID（自动检测或使用配置的账户ID）
+
+        Returns:
+            账户ID字符串，如果未连接或无账户则返回 None
+        """
+        # 如果已配置账户ID，直接返回
+        if self.account_id:
+            return self.account_id
+
+        # 如果未配置，自动获取第一个可用账户
+        if self.ib and self.connected:
+            accounts = self.ib.managedAccounts()
+            if accounts:
+                # 自动使用第一个账户并保存
+                self.account_id = accounts[0]
+                return self.account_id
+
+        return None
+
+    def get_all_accounts(self) -> list:
+        """获取所有可用账户列表
+
+        Returns:
+            账户ID列表
+        """
+        if not self.connected:
+            if not self.connect():
+                return []
+
+        try:
+            return self.ib.managedAccounts()
+        except Exception as e:
+            print(f"Error getting accounts: {e}")
+            return []
 
     def get_stock_price(self) -> Dict[str, Optional[float]]:
         """Get current stock bid/ask prices.

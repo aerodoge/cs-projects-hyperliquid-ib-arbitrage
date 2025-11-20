@@ -1,5 +1,11 @@
 """测试市场时段检测功能"""
 
+import sys
+from pathlib import Path
+
+# 添加 src 目录到 Python 路径
+sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+
 import datetime
 from dateutil import tz
 

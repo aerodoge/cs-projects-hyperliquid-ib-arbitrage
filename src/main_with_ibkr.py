@@ -75,6 +75,18 @@ def main():
         help="IBKR Gateway/TWS port (default: 7497 for TWS paper)"
     )
     parser.add_argument(
+        "--ibkr-account-id",
+        type=str,
+        default=os.getenv("IBKR_ACCOUNT_ID", ""),
+        help="IBKR account ID (e.g., DU1234567 for paper, U1234567 for live)"
+    )
+    parser.add_argument(
+        "--ibkr-client-id",
+        type=int,
+        default=int(os.getenv("IBKR_CLIENT_ID", "1")),
+        help="IBKR client ID (default: 1)"
+    )
+    parser.add_argument(
         "--no-ibkr",
         action="store_true",
         default=os.getenv("DISABLE_IBKR", "false").lower() == "true",
@@ -122,15 +134,30 @@ def main():
     # Initialize IBKR fetcher
     ibkr_fetcher = None
     if not args.no_ibkr:
+        # 处理账户ID（空字符串转为 None）
+        account_id = args.ibkr_account_id if args.ibkr_account_id else None
+
         ibkr_fetcher = IBKRFetcher(
             symbol=args.stock_symbol,
             host=args.ibkr_host,
-            port=args.ibkr_port
+            port=args.ibkr_port,
+            client_id=args.ibkr_client_id,
+            account_id=account_id
         )
         # Try to connect
         if not ibkr_fetcher.connect():
             print("Warning: Could not connect to IBKR. Continuing without IBKR data.")
             ibkr_fetcher = None
+        else:
+            # 显示账户信息
+            detected_account = ibkr_fetcher.get_account_id()
+            if detected_account:
+                print(f"使用 IBKR 账户: {detected_account}")
+                if detected_account.startswith('DU'):
+                    print("  账户类型: 纸交易 (Paper Trading)")
+                elif detected_account.startswith('U'):
+                    print("  账户类型: 实盘 (Live Trading)")
+            print("-" * 50)
 
     # Initialize Prometheus pusher
     pusher = PrometheusMetricsPusher(
@@ -190,33 +217,16 @@ def main():
 
                 # Display fetched metrics
                 print("\nFetched metrics:")
-                print(f"  [Hyperliquid Perp]")
-                print(f"    Perp Bid:     ${metrics.get('perp_bid', 'N/A')}")
-                print(f"    Perp Ask:     ${metrics.get('perp_ask', 'N/A')}")
-                print(f"  [IBKR Spot]")
-                print(f"    Spot Bid:     ${metrics.get('spot_bid', 'N/A')}")
-                print(f"    Spot Ask:     ${metrics.get('spot_ask', 'N/A')}")
-                print(f"  [Prices]")
-                print(f"    Open Price:   ${metrics.get('open', 'N/A')}")
-                print(f"    Close Price:  ${metrics.get('close', 'N/A')}")
-
-                # Calculate arbitrage opportunity
-                if (metrics.get('perp_bid') and metrics.get('spot_ask') and
-                    metrics.get('perp_ask') and metrics.get('spot_bid')):
-                    # Buy spot, sell perp
-                    arb_long_spot = metrics['perp_bid'] - metrics['spot_ask']
-                    # Buy perp, sell spot
-                    arb_long_perp = metrics['spot_bid'] - metrics['perp_ask']
-
-                    print(f"  [Arbitrage Opportunity]")
-                    print(f"    Long Spot:    ${arb_long_spot:.2f} ({arb_long_spot/metrics['spot_ask']*100:.2f}%)")
-                    print(f"    Long Perp:    ${arb_long_perp:.2f} ({arb_long_perp/metrics['perp_ask']*100:.2f}%)")
+                print(f"  Perp Bid:     ${metrics.get('perp_bid', 'N/A')}")
+                print(f"  Perp Ask:     ${metrics.get('perp_ask', 'N/A')}")
+                print(f"  Spot Bid:     ${metrics.get('spot_bid', 'N/A')}")
+                print(f"  Spot Ask:     ${metrics.get('spot_ask', 'N/A')}")
+                print(f"  Open:         ${metrics.get('open', 'N/A')}")
+                print(f"  Close:        ${metrics.get('close', 'N/A')}")
 
                 funding_rate = metrics.get('funding_rate')
                 if funding_rate is not None:
-                    funding_pct = funding_rate * 100
-                    print(f"  [Funding Rate]")
-                    print(f"    Rate:         {funding_pct:.4f}%")
+                    print(f"  Funding Rate: {funding_rate * 100:.4f}%")
                 else:
                     print(f"  Funding Rate: N/A")
 
