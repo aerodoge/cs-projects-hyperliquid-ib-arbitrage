@@ -90,7 +90,7 @@ class IBKRFetcherStreaming:
 
         Note:
             This method reads from the live-updating ticker object.
-            No need to make new requests - data is pushed automatically.
+            Calls ib.sleep(0) to process incoming market data updates.
         """
         if not self.connected or not self.ticker:
             print("Not connected or not subscribed to market data")
@@ -103,7 +103,11 @@ class IBKRFetcherStreaming:
                 """检查价格是否有效"""
                 return price is not None and not math.isnan(price)
 
-            # 直接从 ticker 读取（已经是最新数据）
+            # 处理消息队列，让 ticker 接收最新更新
+            # 这很关键！不调用 sleep() 的话 ticker 不会自动更新
+            self.ib.sleep(0.1)  # 100ms 处理消息
+
+            # 从 ticker 读取最新数据
             bid = self.ticker.bid if is_valid_price(self.ticker.bid) else None
             ask = self.ticker.ask if is_valid_price(self.ticker.ask) else None
             last = self.ticker.last if is_valid_price(self.ticker.last) else None
