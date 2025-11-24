@@ -7,7 +7,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 from hl_fetcher.fetcher_streaming import HyperliquidFetcherStreaming
-from ib_fetcher.fetcher_streaming import IBKRFetcherStreaming
+from ib_fetcher.fetcher_websocket import IBKRFetcherWebSocket
 from prom_pusher import PrometheusMetricsPusher
 
 
@@ -63,28 +63,16 @@ def main():
         help="Comma-separated list of perp DEXs to use (default: xyz)"
     )
     parser.add_argument(
-        "--ibkr-host",
+        "--ibkr-base-url",
         type=str,
-        default=os.getenv("IBKR_HOST", "127.0.0.1"),
-        help="IBKR Gateway/TWS host (default: 127.0.0.1)"
-    )
-    parser.add_argument(
-        "--ibkr-port",
-        type=int,
-        default=int(os.getenv("IBKR_PORT", "7497")),
-        help="IBKR Gateway/TWS port (default: 7497 for TWS paper)"
+        default=os.getenv("IBKR_BASE_URL", "https://localhost:5000"),
+        help="IBKR Client Portal Gateway base URL (default: https://localhost:5000)"
     )
     parser.add_argument(
         "--ibkr-account-id",
         type=str,
         default=os.getenv("IBKR_ACCOUNT_ID", ""),
         help="IBKR account ID (e.g., DU1234567 for paper, U1234567 for live)"
-    )
-    parser.add_argument(
-        "--ibkr-client-id",
-        type=int,
-        default=int(os.getenv("IBKR_CLIENT_ID", "1")),
-        help="IBKR client ID (default: 1)"
     )
     parser.add_argument(
         "--no-ibkr",
@@ -115,7 +103,7 @@ def main():
     if args.no_ibkr:
         print(f"IBKR: Disabled")
     else:
-        ibkr_mode = f"Enabled ({args.ibkr_host}:{args.ibkr_port})"
+        ibkr_mode = f"Enabled ({args.ibkr_base_url})"
         if args.ibkr_regular_hours_only:
             ibkr_mode += " - Regular hours only (9:30 AM - 4:00 PM ET)"
         print(f"IBKR: {ibkr_mode}")
@@ -133,17 +121,15 @@ def main():
     )
     print("-" * 50)
 
-    # Initialize IBKR fetcher (streaming mode for real-time updates)
+    # Initialize IBKR fetcher (WebSocket mode via Client Portal API)
     ibkr_fetcher = None
     if not args.no_ibkr:
         # 处理账户ID（空字符串转为 None）
         account_id = args.ibkr_account_id if args.ibkr_account_id else None
 
-        ibkr_fetcher = IBKRFetcherStreaming(
+        ibkr_fetcher = IBKRFetcherWebSocket(
             symbol=args.stock_symbol,
-            host=args.ibkr_host,
-            port=args.ibkr_port,
-            client_id=args.ibkr_client_id,
+            base_url=args.ibkr_base_url,
             account_id=account_id
         )
         # Try to connect (automatically subscribes to market data)
