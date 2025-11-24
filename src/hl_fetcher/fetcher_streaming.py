@@ -158,7 +158,11 @@ class HyperliquidFetcherStreaming:
             print(f"Error processing candle update: {e}")
 
     def _update_funding_rate_cache(self):
-        """更新资金费率缓存（HTTP 请求，因为更新频率低）."""
+        """更新资金费率缓存（HTTP 请求）.
+
+        Note: predictedFundings API 只支持加密货币，不支持 xyz DEX 的股票永续合约
+              因此使用 funding_history 获取最近的 funding rate
+        """
         try:
             end_time = int(time.time() * 1000)
             start_time = end_time - 86400000  # 24 hours ago

@@ -80,47 +80,63 @@ class PrometheusMetricsPusher:
             registry=self.registry
         )
 
+    def _is_valid_price(self, value: Optional[float]) -> bool:
+        """验证价格数据是否有效（非空且非负）.
+
+        Args:
+            value: 价格值
+
+        Returns:
+            True if valid, False otherwise
+        """
+        return value is not None and value >= 0
+
     def update_metrics(self, metrics: Dict[str, Optional[float]]) -> None:
         """Update all metrics with new values.
 
         Args:
             metrics: Dictionary containing all metric values
+
+        Note:
+            价格数据小于 0 的会被过滤掉不推送
+            Funding rate 可以为负数，不过滤
         """
-        # Update primary metrics
-        if metrics.get("perp_bid") is not None:
+        # Update primary metrics (价格类数据需要验证非负)
+        if self._is_valid_price(metrics.get("perp_bid")):
             self.perp_bid_gauge.set(metrics["perp_bid"])
 
-        if metrics.get("perp_ask") is not None:
+        if self._is_valid_price(metrics.get("perp_ask")):
             self.perp_ask_gauge.set(metrics["perp_ask"])
 
-        if metrics.get("spot_bid") is not None:
+        if self._is_valid_price(metrics.get("spot_bid")):
             self.spot_bid_gauge.set(metrics["spot_bid"])
 
-        if metrics.get("spot_ask") is not None:
+        if self._is_valid_price(metrics.get("spot_ask")):
             self.spot_ask_gauge.set(metrics["spot_ask"])
 
-        if metrics.get("open") is not None:
+        if self._is_valid_price(metrics.get("open")):
             self.open_price_gauge.set(metrics["open"])
 
-        if metrics.get("close") is not None:
+        if self._is_valid_price(metrics.get("close")):
             self.close_price_gauge.set(metrics["close"])
 
+        # Funding rate 可以为负数，只检查非空
         if metrics.get("funding_rate") is not None:
             self.funding_rate_gauge.set(metrics["funding_rate"])
 
-        # Calculate and update derived metrics
+        # Calculate and update derived metrics (也需要验证有效性)
         # Spread between open and close
-        if metrics.get("open") is not None and metrics.get("close") is not None:
+        if self._is_valid_price(metrics.get("open")) and self._is_valid_price(metrics.get("close")):
             spread = metrics["close"] - metrics["open"]
             self.spread_gauge.set(spread)
 
         # Perp mid price
-        if metrics.get("perp_bid") is not None and metrics.get("perp_ask") is not None:
+        if self._is_valid_price(metrics.get("perp_bid")) and self._is_valid_price(metrics.get("perp_ask")):
             perp_mid = (metrics["perp_bid"] + metrics["perp_ask"]) / 2
             self.perp_mid_price_gauge.set(perp_mid)
 
         # Spot mid price
-        if metrics.get("spot_bid") is not None and metrics.get("spot_ask") is not None:
+        if self._is_valid_price(metrics.get("spot_bid")) and self._is_valid_price(metrics.get("spot_ask")):
             spot_mid = (metrics["spot_bid"] + metrics["spot_ask"]) / 2
             self.spot_mid_price_gauge.set(spot_mid)
 
