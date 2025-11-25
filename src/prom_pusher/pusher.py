@@ -43,40 +43,9 @@ class PrometheusMetricsPusher:
             registry=self.registry
         )
 
-        self.open_price_gauge = Gauge(
-            "hyib_arb_open_price",
-            "Open price for NVDA (from recent candle)",
-            registry=self.registry
-        )
-
-        self.close_price_gauge = Gauge(
-            "hyib_arb_close_price",
-            "Close price for NVDA (from recent candle)",
-            registry=self.registry
-        )
-
         self.funding_rate_gauge = Gauge(
             "hyib_arb_funding_rate",
             "Funding rate for NVDA perpetual contract",
-            registry=self.registry
-        )
-
-        # Additional computed metrics
-        self.spread_gauge = Gauge(
-            "hyib_arb_spread",
-            "Spread between open and close prices",
-            registry=self.registry
-        )
-
-        self.perp_mid_price_gauge = Gauge(
-            "hyib_arb_perp_mid_price",
-            "Mid price between perp bid and ask",
-            registry=self.registry
-        )
-
-        self.spot_mid_price_gauge = Gauge(
-            "hyib_arb_spot_mid_price",
-            "Mid price between spot bid and ask",
             registry=self.registry
         )
 
@@ -114,31 +83,9 @@ class PrometheusMetricsPusher:
         if self._is_valid_price(metrics.get("spot_ask")):
             self.spot_ask_gauge.set(metrics["spot_ask"])
 
-        if self._is_valid_price(metrics.get("open")):
-            self.open_price_gauge.set(metrics["open"])
-
-        if self._is_valid_price(metrics.get("close")):
-            self.close_price_gauge.set(metrics["close"])
-
         # Funding rate 可以为负数，只检查非空
         if metrics.get("funding_rate") is not None:
             self.funding_rate_gauge.set(metrics["funding_rate"])
-
-        # Calculate and update derived metrics (也需要验证有效性)
-        # Spread between open and close
-        if self._is_valid_price(metrics.get("open")) and self._is_valid_price(metrics.get("close")):
-            spread = metrics["close"] - metrics["open"]
-            self.spread_gauge.set(spread)
-
-        # Perp mid price
-        if self._is_valid_price(metrics.get("perp_bid")) and self._is_valid_price(metrics.get("perp_ask")):
-            perp_mid = (metrics["perp_bid"] + metrics["perp_ask"]) / 2
-            self.perp_mid_price_gauge.set(perp_mid)
-
-        # Spot mid price
-        if self._is_valid_price(metrics.get("spot_bid")) and self._is_valid_price(metrics.get("spot_ask")):
-            spot_mid = (metrics["spot_bid"] + metrics["spot_ask"]) / 2
-            self.spot_mid_price_gauge.set(spot_mid)
 
     def push_metrics(self) -> bool:
         """Push metrics to Prometheus Push Gateway.

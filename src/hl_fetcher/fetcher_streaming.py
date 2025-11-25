@@ -36,12 +36,12 @@ class HyperliquidFetcherStreaming:
         # Cache for latest data (will be updated by WebSocket callbacks)
         self._lock = threading.Lock()  # Thread safety for callbacks
         self._latest_orderbook = {"perp_bid": None, "perp_ask": None, "timestamp": None}
-        self._latest_candle = {"open": None, "close": None, "timestamp": None}
         self._latest_funding_rate = None
+        self._latest_mark_price = None
 
         # Subscription IDs for cleanup
         self._l2_sub_id = None
-        self._candle_sub_id = None
+        self._asset_ctx_sub_id = None
 
         # Subscribe to WebSocket data streams
         self._subscribe_to_feeds()
@@ -52,26 +52,20 @@ class HyperliquidFetcherStreaming:
 
         try:
             # 订阅 L2 orderbook（实时 bid/ask 更新）
-            # 尝试使用完整 symbol (xyz:NVDA) 而不是简化名称 (NVDA)
             print(f"  Subscribing to L2 orderbook for {self.symbol}...")
             self._l2_sub_id = self.info.subscribe(
-                {"type": "l2Book", "coin": self.symbol},  # 使用完整 symbol
+                {"type": "l2Book", "coin": self.symbol},
                 self._on_l2_book_update
             )
             print(f"  ✓ L2 orderbook subscribed (ID: {self._l2_sub_id})")
 
-            # 订阅 1 分钟 K 线（open/close 价格）
-            print(f"  Subscribing to 1m candles for {self.symbol}...")
-            self._candle_sub_id = self.info.subscribe(
-                {"type": "candle", "coin": self.symbol, "interval": "1m"},  # 使用完整 symbol
-                self._on_candle_update
+            # 订阅 activeAssetCtx（实时 funding rate 更新）
+            print(f"  Subscribing to activeAssetCtx for {self.symbol}...")
+            self._asset_ctx_sub_id = self.info.subscribe(
+                {"type": "activeAssetCtx", "coin": self.symbol},
+                self._on_asset_ctx_update
             )
-            print(f"  ✓ Candle stream subscribed (ID: {self._candle_sub_id})")
-
-            # Funding rate 使用 HTTP 获取（更新频率低，每小时一次）
-            print(f"  Initializing funding rate (HTTP)...")
-            self._update_funding_rate_cache()
-            print(f"  ✓ Funding rate initialized")
+            print(f"  ✓ activeAssetCtx subscribed (ID: {self._asset_ctx_sub_id})")
 
             print("✓ All subscriptions ready")
 
@@ -119,43 +113,41 @@ class HyperliquidFetcherStreaming:
         except Exception as e:
             print(f"Error processing L2 book update: {e}")
 
-    def _on_candle_update(self, msg: Dict[str, Any]):
-        """WebSocket 回调：处理 K 线更新.
+    def _on_asset_ctx_update(self, msg: Dict[str, Any]):
+        """WebSocket 回调：处理 activeAssetCtx 更新（包含 funding rate）.
 
         消息格式:
         {
-            "channel": "candle",
+            "channel": "activeAssetCtx",
             "data": {
-                "t": timestamp_ms,
-                "T": timestamp_ms,
-                "s": "NVDA",
-                "i": "1m",
-                "o": "140.25",
-                "c": "140.30",
-                "h": "140.35",
-                "l": "140.20",
-                "v": "1000",
-                "n": 50
+                "coin": "xyz:NVDA",
+                "ctx": {
+                    "funding": "0.00012345",  # 当前 funding rate
+                    "openInterest": "1234567.89",
+                    "prevDayPx": "180.50",
+                    "dayNtlVlm": "12345678.90",
+                    "premium": "0.0001",
+                    "oraclePx": "180.60",
+                    "markPx": "180.61",
+                    "midPx": "180.615"
+                }
             }
         }
         """
         try:
             data = msg["data"]
+            ctx = data.get("ctx", {})
 
-            open_price = float(data["o"]) if "o" in data else None
-            close_price = float(data["c"]) if "c" in data else None
-            timestamp = data.get("t")
+            funding_str = ctx.get("funding")
+            if funding_str:
+                funding_rate = float(funding_str)
 
-            # 线程安全更新缓存
-            with self._lock:
-                self._latest_candle = {
-                    "open": open_price,
-                    "close": close_price,
-                    "timestamp": timestamp
-                }
+                # 线程安全更新缓存
+                with self._lock:
+                    self._latest_funding_rate = funding_rate
 
         except Exception as e:
-            print(f"Error processing candle update: {e}")
+            print(f"Error processing asset ctx update: {e}")
 
     def _update_funding_rate_cache(self):
         """更新资金费率缓存（HTTP 请求）.
@@ -205,31 +197,89 @@ class HyperliquidFetcherStreaming:
         """
         return {"spot_bid": None, "spot_ask": None}
 
-    def get_spread_prices(self) -> Dict[str, Optional[float]]:
-        """Get open and close prices from recent candles.
-
-        Returns:
-            Dictionary containing open and close prices
-
-        Note: 数据来自 WebSocket 推送，无需主动请求！
-        """
-        with self._lock:
-            return {
-                "open": self._latest_candle["open"],
-                "close": self._latest_candle["close"]
-            }
-
     def get_funding_rate(self) -> Optional[float]:
         """Get current funding rate for the perpetual contract.
 
         Returns:
             Current funding rate as a float
 
-        Note: Funding rate 每小时更新一次，可以低频调用 HTTP API
+        Note: 数据来自 activeAssetCtx WebSocket 推送，实时更新，无需 HTTP 请求
         """
-        # 每次调用时更新（因为外层循环间隔较长，这里不会造成频繁请求）
-        self._update_funding_rate_cache()
-        return self._latest_funding_rate
+        with self._lock:
+            return self._latest_funding_rate
+
+    def _update_mark_price_cache(self):
+        """更新 Mark Price 缓存（HTTP 请求）.
+
+        使用 meta_and_asset_ctxs API 获取完整的市场数据，包括：
+        - markPx: Mark Price
+        - midPx: Mid Price
+        - funding: 资金费率
+        - openInterest: 持仓量
+        等
+        """
+        try:
+            # 调用 API 获取所有资产的市场数据
+            data = self.info.meta_and_asset_ctxs()
+
+            # data[0] = universe (元数据)
+            # data[1] = assetCtxs (市场数据数组)
+            if not data or len(data) < 2:
+                print("Warning: meta_and_asset_ctxs returned invalid data")
+                return
+
+            universe = data[0]
+            asset_ctxs = data[1]
+
+            # 找到对应 symbol 的索引
+            # universe 包含所有资产的名称列表
+            symbol_index = None
+            for idx, asset in enumerate(universe):
+                asset_name = asset.get("name", "")
+                # 匹配 symbol（例如 "xyz:NVDA" 或 "NVDA"）
+                if asset_name == self.symbol or asset_name == self.coin:
+                    symbol_index = idx
+                    break
+
+            if symbol_index is None:
+                print(f"Warning: Symbol {self.symbol} not found in universe")
+                return
+
+            # 获取对应的市场数据
+            if symbol_index < len(asset_ctxs):
+                ctx = asset_ctxs[symbol_index]
+
+                # 检查 ctx 类型
+                if isinstance(ctx, str):
+                    # 如果是字符串，可能需要解析
+                    print(f"Warning: asset_ctx is string, not dict: {ctx[:100]}")
+                    return
+
+                if not isinstance(ctx, dict):
+                    print(f"Warning: asset_ctx is not a dict: {type(ctx)}")
+                    return
+
+                mark_price_str = ctx.get("markPx")
+
+                if mark_price_str:
+                    self._latest_mark_price = float(mark_price_str)
+
+        except Exception as e:
+            print(f"Error updating mark price cache: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def get_mark_price(self) -> Optional[float]:
+        """Get current mark price for the perpetual contract.
+
+        Returns:
+            Current mark price as a float
+
+        Note: Mark Price 从 HTTP API 获取，建议适度调用频率
+        """
+        # 每次调用时更新
+        self._update_mark_price_cache()
+        return self._latest_mark_price
 
     def get_all_metrics(self) -> Dict[str, Any]:
         """Fetch all metrics at once.
@@ -237,12 +287,12 @@ class HyperliquidFetcherStreaming:
         Returns:
             Dictionary containing all market metrics
 
-        Note: orderbook 和 candle 数据来自 WebSocket 缓存（零 HTTP 请求）
-              只有 funding_rate 会触发一次 HTTP 请求
+        Note: 所有数据均来自 WebSocket 实时推送（零 HTTP 请求）
+              - orderbook: l2Book 订阅
+              - funding_rate: activeAssetCtx 订阅
         """
         orderbook = self.get_orderbook_prices()
         spot = self.get_spot_prices()
-        spread = self.get_spread_prices()
         funding_rate = self.get_funding_rate()
 
         return {
@@ -250,8 +300,6 @@ class HyperliquidFetcherStreaming:
             "perp_ask": orderbook["perp_ask"],
             "spot_bid": spot["spot_bid"],
             "spot_ask": spot["spot_ask"],
-            "open": spread["open"],
-            "close": spread["close"],
             "funding_rate": funding_rate
         }
 
@@ -263,18 +311,18 @@ class HyperliquidFetcherStreaming:
             # 取消 L2 orderbook 订阅
             if self._l2_sub_id is not None:
                 self.info.unsubscribe(
-                    {"type": "l2Book", "coin": self.symbol},  # 使用完整 symbol
+                    {"type": "l2Book", "coin": self.symbol},
                     self._l2_sub_id
                 )
                 print("  ✓ L2 orderbook unsubscribed")
 
-            # 取消 candle 订阅
-            if self._candle_sub_id is not None:
+            # 取消 activeAssetCtx 订阅
+            if self._asset_ctx_sub_id is not None:
                 self.info.unsubscribe(
-                    {"type": "candle", "coin": self.symbol, "interval": "1m"},  # 使用完整 symbol
-                    self._candle_sub_id
+                    {"type": "activeAssetCtx", "coin": self.symbol},
+                    self._asset_ctx_sub_id
                 )
-                print("  ✓ Candle stream unsubscribed")
+                print("  ✓ activeAssetCtx unsubscribed")
 
             # 断开 WebSocket 连接
             # Note: SDK 会自动管理连接，这里不需要显式断开

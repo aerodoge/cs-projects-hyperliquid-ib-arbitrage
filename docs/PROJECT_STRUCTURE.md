@@ -1,25 +1,25 @@
 # 项目结构说明
 
-## 📁 完整目录结构
+## 完整目录结构
 
 ```
 cs-projects-hyperliquid-ib-arbitrage/
-├── src/                                # 📦 源代码目录
+├── src/                                # 源代码目录
 │   ├── __init__.py                     # 包初始化
 │   │
-│   ├── hl_fetcher/                     # 🔵 Hyperliquid 数据获取包
+│   ├── hl_fetcher/                     # Hyperliquid 数据获取包
 │   │   ├── __init__.py                 # 包导出
 │   │   └── fetcher.py                  # Hyperliquid 数据获取器
 │   │
-│   ├── ib_fetcher/                     # 🟢 Interactive Brokers 数据获取包
+│   ├── ib_fetcher/                     # Interactive Brokers 数据获取包
 │   │   ├── __init__.py                 # 包导出
 │   │   └── fetcher.py                  # IBKR 数据获取器
 │   │
-│   ├── prom_pusher/                    # 🟡 Prometheus 推送包
+│   ├── prom_pusher/                    # Prometheus 推送包
 │   │   ├── __init__.py                 # 包导出
 │   │   └── pusher.py                   # Prometheus 指标推送器
 │   │
-│   ├── utils/                          # 🛠️ 工具脚本包
+│   ├── utils/                          # 工具脚本包
 │   │   ├── __init__.py                 # 包初始化
 │   │   ├── find_nvda_dex.py            # 查找 NVDA DEX
 │   │   ├── list_assets.py              # 列出所有资产
@@ -28,30 +28,30 @@ cs-projects-hyperliquid-ib-arbitrage/
 │   │   ├── test_xyz_nvda.py            # xyz:NVDA 测试 v1
 │   │   └── test_xyz_nvda_v2.py         # xyz:NVDA 测试 v2
 │   │
-│   ├── main.py                         # ⚡ 主程序（仅 Hyperliquid）
-│   ├── main_with_ibkr.py               # ⚡ 主程序（含 IBKR 套利）
-│   ├── test_final.py                   # 🧪 完整功能测试
-│   ├── test_ibkr.py                    # 🧪 IBKR 连接测试
-│   └── test_fetch.py                   # 🧪 基础数据获取测试
+│   ├── main.py                         # 主程序（仅 Hyperliquid）
+│   ├── main_with_ibkr.py               # 主程序（含 IBKR 套利）
+│   ├── test_final.py                   # 完整功能测试
+│   ├── test_ibkr.py                    # IBKR 连接测试
+│   └── test_fetch.py                   # 基础数据获取测试
 │
-├── docs/                               # 📚 文档目录
-│   ├── README_CN.md                    # 📖 完整中文文档（主文档）
-│   ├── DEPLOYMENT.md                   # 🚀 部署指南
-│   ├── IBKR_INTEGRATION.md             # 💹 IBKR 集成文档
-│   ├── PROJECT_SUMMARY.md              # 📊 项目总结
-│   ├── PROJECT_STRUCTURE.md            # 📁 项目结构（本文件）
-│   └── INDEX.md                        # 🗂️ 文档索引
+├── docs/                               # 文档目录
+│   ├── README_CN.md                    # 完整中文文档（主文档）
+│   ├── DEPLOYMENT.md                   # 部署指南
+│   ├── IBKR_INTEGRATION.md             # IBKR 集成文档
+│   ├── PROJECT_SUMMARY.md              # 项目总结
+│   ├── PROJECT_STRUCTURE.md            # 项目结构（本文件）
+│   └── INDEX.md                        # 文档索引
 │
-├── pics/                               # 🖼️ 图片资源
+├── pics/                               # 图片资源
 │   └── img.png                         # 参考截图
 │
-├── .venv/                              # 🐍 Python 虚拟环境
-├── requirements.txt                    # 📋 Python 依赖
-├── .env.example                        # ⚙️ 配置模板
-├── .gitignore                          # 🚫 Git 忽略文件
-├── quickstart.sh                       # 🚀 快速开始脚本
-├── README.md                           # 📄 英文 README
-└── README_CN.md                        # 📄 中文 README
+├── .venv/                              # Python 虚拟环境
+├── requirements.txt                    # Python 依赖
+├── .env.example                        # ⚙配置模板
+├── .gitignore                          # Git 忽略文件
+├── quickstart.sh                       # 快速开始脚本
+├── README.md                           # 英文 README
+└── README_CN.md                        # 中文 README
 ```
 
 ## 📦 包说明
