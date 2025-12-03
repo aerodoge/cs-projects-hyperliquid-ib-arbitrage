@@ -57,6 +57,7 @@ python src/main_trading.py            # 自动交易（需先配置私钥）
 | **[部署指南](docs/DEPLOYMENT.md)**          | 生产环境部署、Docker、Systemd、监控    |
 | **[IBKR 集成](docs/IBKR_INTEGRATION.md)** | Interactive Brokers 集成和数据采集 |
 | **[项目结构](docs/PROJECT_STRUCTURE.md)**   | 详细的代码结构和包说明（开发者用）           |
+| **[开发日志](DEVELOPMENT_LOG.md)**         | 开发记录和会话历史（包含技术细节和问题解决）    |
 
 ## 使用场景
 

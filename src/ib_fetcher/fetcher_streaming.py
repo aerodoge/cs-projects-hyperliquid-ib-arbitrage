@@ -46,6 +46,11 @@ class IBKRFetcherStreaming:
             self.contract = Stock(self.symbol, 'SMART', 'USD')
             self.ib.qualifyContracts(self.contract)
 
+            # 设置市场数据类型: 1=实时, 3=延迟
+            # 如果没有实时数据订阅，使用延迟数据（15分钟延迟，免费）
+            # 订阅实时数据后改为 reqMarketDataType(1)
+            self.ib.reqMarketDataType(1)
+
             # 订阅市场数据（持续订阅，不取消）
             self.ticker = self.ib.reqMktData(self.contract, '', False, False)
             print(f"✓ Subscribed to {self.symbol} market data stream")
